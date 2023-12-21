@@ -1,0 +1,17 @@
+name: Merge Notification
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out the code
+      uses: actions/checkout@v2
+
+    - name: Echo Merged in Master Branch
+      run: echo "Merged in master branch"

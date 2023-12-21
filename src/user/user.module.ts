@@ -3,10 +3,25 @@ import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UserSchema } from 'schema';
+import { JwtStrategy } from 'src/auth/strategies/jwt.strategy';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: 'users', schema: UserSchema }])],
+  imports: [
+    ThrottlerModule.forRoot([
+      {
+        ttl: 10,
+        limit: 2,
+      },
+    ]),
+    MongooseModule.forFeature([{ name: 'users', schema: UserSchema }]),
+  ],
   controllers: [UserController],
-  providers: [UserService],
+  providers: [
+    UserService,
+    JwtStrategy,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class UserModule {}
