@@ -21,9 +21,13 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  async getExistingSession(email: string): Promise<string> {
+    const existingSessionId = this.activeSessions[email];
+    return existingSessionId;
+  }
+
   async checkUserSession(email: string, session: Session): Promise<boolean> {
     const existingSessionId = this.activeSessions[email];
-
 
     if (existingSessionId) {
       if (existingSessionId !== session.id) {
@@ -32,13 +36,16 @@ export class AuthService {
     }
 
     return true;
-
   }
 
   addUserToSession(email: string, sessionId: string): void {
     this.activeSessions[email] = sessionId;
   }
 
+  removeUserSession(email: string): void {
+    delete this.activeSessions[email];
+    console.log(this.activeSessions);
+  }
 
   async vaidateUser(data: LoginDto) {
     const user = await this.userModel
@@ -46,7 +53,6 @@ export class AuthService {
       .lean();
     if (!user) {
       throw new NotFoundException('User User not found');
-      
     }
 
     const isMatch = await bcrypt.compare(data.password, user.password);
