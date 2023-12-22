@@ -31,11 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       existingUser = await this.userModal.findOne({
         $or: [{ email: email }],
       });
-      // existingUser = await userModal.findOne({
-      // 	where: {
-      // 		[Op.or]: [{ phone: userId }, { alias: userId }, { email: userId }],
-      // 	},
-      // });
+
     } catch (error) {
       throw new HttpException(
         'Exception while connecting with the database.',

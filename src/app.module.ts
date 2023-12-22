@@ -10,17 +10,12 @@ import { JwtStrategy } from './auth/strategies/jwt.strategy';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ResponseFormatInterceptor } from './response.interceptor';
 config();
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([
-      {
-        ttl: 10,
-        limit: 2,
-      },
-    ]),
     MongooseModule.forRoot(process.env.MONGOURI),
     MongooseModule.forFeature([{ name: 'users', schema: UserSchema }]),
     AuthModule,
@@ -32,12 +27,23 @@ config();
         expiresIn: 3600,
       },
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 10000,
+        limit: 2,
+      },
+    ]
+    ),
   ],
   controllers: [AppController],
   providers: [
     AppService,
     JwtStrategy,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseFormatInterceptor,
+    },
   ],
 })
 export class AppModule {}

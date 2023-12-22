@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, ObjectId } from 'mongoose';
 import { UserDocument } from 'schema';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
@@ -21,73 +21,47 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async checkUserSession(userId: string, session: Session): Promise<boolean> {
-    console.log(this.activeSessions);
-    const existingSessionId = this.activeSessions[userId];
+  async checkUserSession(email: string, session: Session): Promise<boolean> {
+    const existingSessionId = this.activeSessions[email];
 
-    console.log(existingSessionId, session.id);
 
     if (existingSessionId) {
       if (existingSessionId !== session.id) {
         return false;
       }
-      return true;
     }
 
-    this.activeSessions[userId] = session.id;
     return true;
+
   }
 
-  addUserToSession(userId: string, sessionId: string): void {
-    this.activeSessions[userId] = sessionId;
+  addUserToSession(email: string, sessionId: string): void {
+    this.activeSessions[email] = sessionId;
   }
 
-  async login(data: LoginDto, byPassWord: boolean = false) {
-    const user = await this.userModel.findOne({ $or: [{ email: data.email }] });
-    if (!user) {
-      throw new NotFoundException('User User not found');
-    }
-
-    if (!byPassWord) {
-      const isMatch = await bcrypt.compare(data.password, user.password);
-      if (!isMatch) {
-        console.log('passowrd not match');
-        throw new NotFoundException('User User not found');
-      }
-    }
-
-    return {
-      isVerified: true,
-      accessToken: 'accessToken',
-      refreshToken: 'refreshToken',
-      user: {
-        email: user.email,
-      },
-    };
-  }
 
   async vaidateUser(data: LoginDto) {
     const user = await this.userModel
       .findOne({ $or: [{ email: data.email }] })
       .lean();
     if (!user) {
-      return null;
+      throw new NotFoundException('User User not found');
+      
     }
 
     const isMatch = await bcrypt.compare(data.password, user.password);
     if (!isMatch) {
-      console.log('passowrd not match');
-      return null;
+      throw new NotFoundException('User User not found');
     }
 
     return user;
   }
 
   async generateToken(
-    payload: { _id: string; email: string },
+    payload: { _id: string | ObjectId; email: string },
     secret?: string,
     life?: string,
-  ): Promise<any> {
+  ): Promise<string> {
     const token = await this.jwtService.sign(payload, {
       secret: secret,
       expiresIn: life,
@@ -96,7 +70,6 @@ export class AuthService {
   }
 
   async register(data: registerDto) {
-    console.log('data=>', data);
     const checkEmail = await this.userModel.findOne({
       $or: [{ email: data.email }],
     });
@@ -105,7 +78,6 @@ export class AuthService {
         'an account is already registered with this email',
       );
     }
-    console.log(process.env.SALT);
     data.password = await bcrypt.hash(
       data.password,
       parseInt(process.env.SALT),
